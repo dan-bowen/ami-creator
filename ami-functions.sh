@@ -11,7 +11,7 @@ NAME
 
 DESCRIPTION
 
-        ami-creator is a command line tool to build and mange custom AMIs using Ansible for provisioning.
+        ami-creator is a command line tool to build custom AMIs using Ansible for provisioning.
 
 OPTIONS
 
@@ -19,15 +19,15 @@ OPTIONS
 
 AVAILABLE COMMANDS
 
-    init
-    create
-    pre-ansible
-    ansible
-    ssh
-    terminate
-    finalize
-    list-amis
-    list-instances
+    init                Create a new ami-creator project
+    create              Create a custom AMI start to finish
+    pre-ansible         Run a script on the instance before running Ansible
+    ansible             Run Ansible on the instance
+    ssh                 SSH to the currently running instance
+    terminate           Terminate the currently running instance
+    finalize            Create AMI from currently running instance
+    list-amis           List AMIs created on a per-session, per-project or global basis
+    list-instances      List any instances that are running on a per-session, project or global basis
 ";
 
     # if no parameters are sent in just display the help message
