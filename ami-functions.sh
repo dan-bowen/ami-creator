@@ -190,11 +190,6 @@ OPTIONS
     local aws_profile
     local ansible_playbook
 
-    if [ -f ${CALLING_DIR}/project.cfg ]; then
-        echo "[ERROR] cannot call init from inside a project directory"
-        exit 1
-    fi
-
     # process arguments
     for i in "${@-}"
     do
@@ -206,6 +201,11 @@ OPTIONS
         ;;
     esac
     done
+
+    if [ -f ${CALLING_DIR}/project.cfg ]; then
+        echo "[ERROR] cannot call init from inside a project directory"
+        exit 1
+    fi
 
     # @todo better checking for empty inputs that don't have defaults
     read -p 'Project Name (ex: innovative_project_dev): ' project_name
