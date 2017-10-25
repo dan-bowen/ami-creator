@@ -874,7 +874,7 @@ list_amis() {
         filters="Name=tag:ami-creator-project,Values=${PROJECT_NAME}"
     else
         echo "[INFO] Listing AMI ID: ${AMI_ID}"
-        filters="Name=instance-id,Values=${AMI_ID}"
+        filters="Name=image-id,Values=${AMI_ID}"
     fi
 
     aws ec2 describe-images \
