@@ -73,9 +73,7 @@ AVAILABLE SUB-COMMANDS
 
 OPTIONS
 
-        [--no-terminate]             Optional: Don't terminate the temporary EC2 instance. Useful for debugging.
-
-        Remainging arguments are optional. If given, they will override project values saved by 'ami-creator init'.
+        All arguments are optional. If given, they will override project values saved by 'ami-creator init'.
 
         [--profile]                  AWS profile. Same as 'aws --profile'. Default: 'default'
         [--ami-base]                 Base AMI to start building from
@@ -108,14 +106,14 @@ OPTIONS
 
     # Create the instance
     echo "[INFO] Creating temporary EC2 instance."
-    instance_id=$(create_instance);
-    echo "[INFO] Created instance id: $instance_id";
+    create_instance
+    echo "[INFO] Created instance id: ${INSTANCE_ID}";
 
     # Wait for it to exit pending state
     echo "[INFO] Waiting for instance to become available.";
     while state=$(aws ec2 describe-instances \
         --profile ${AWS_PROFILE} \
-        --instance-ids ${instance_id} \
+        --instance-ids ${INSTANCE_ID} \
         --output text \
         --query 'Reservations[*].Instances[*].State.Name');
         test "$state" = "pending";
@@ -127,7 +125,7 @@ OPTIONS
     # Get the public IP address
     ip_address=$(aws ec2 describe-instances \
         --profile ${AWS_PROFILE} \
-        --instance-ids ${instance_id} \
+        --instance-ids ${INSTANCE_ID} \
         --output text \
         --query 'Reservations[*].Instances[*].PublicIpAddress'
     );
@@ -143,19 +141,19 @@ OPTIONS
     pre_ansible
 
     # Provision with Ansible
-    ansible ${instance_id}
+    ansible ${INSTANCE_ID}
 
     echo "[INFO] Sleeping for 30 seconds..."
     sleep 30;
 
     echo "[INFO] Creating AMI...";
-    ami_id=$(create_ami ${instance_id});
+    ami_id=$(create_ami ${INSTANCE_ID});
 
     # Wait for it to exit pending state
     ami_wait ${ami_id}
 
     # Terminate temporary EC2 instance
-    terminate_instance ${instance_id}
+    terminate_instances "session"
 }
 
 command_init() {
@@ -396,9 +394,6 @@ DESCRIPTION
 AVAILABLE SUB-COMMANDS
 
         help    Display this help message
-
-OPTIONS
-        [--no-terminate]           Optional: Don't terminate the temporary EC2 instance. Useful for debugging.
 ";
 
     # handle subcommands
@@ -466,16 +461,7 @@ OPTIONS
 
     set_global_variables ${@-}
 
-    # list instances that would be terminated
-    list_instances ${scope}
-
-    # get instance IDs for termination
-    local instances=$(get_instances_by_scope ${scope})
-
-    # confirm before deleting
-    confirm_or_exit "Are you sure you want to terminate the listed instances? [y/n] "
-
-    terminate_instance "${instances}"
+    terminate_instances "${scope}"
 }
 
 command_ssh() {
@@ -529,9 +515,6 @@ DESCRIPTION
 AVAILABLE SUB-COMMANDS
 
         help    Display this help message
-
-OPTIONS
-        [--no-terminate]           Optional: Don't terminate the temporary EC2 instance. Useful for debugging.
 ";
 
     # handle subcommands
@@ -555,7 +538,7 @@ OPTIONS
     ami_wait ${ami_id}
 
     # Terminate temporary EC2 instance
-    terminate_instance ${INSTANCE_ID}
+    terminate_instances "session"
 }
 
 command_list_instances() {
@@ -671,8 +654,6 @@ set_global_variables() {
         source ${PROJECT_DIR}/session.lock
     fi
 
-    NO_TERMINATE=false
-
     # process configuration overrides
     for i in "${@-}"
     do
@@ -711,10 +692,6 @@ set_global_variables() {
         ;;
         --iam-instance-profile=*)
         IAM_INSTANCE_PROFILE="${i#*=}"
-        shift # past argument=value
-        ;;
-        --no-terminate)
-        NO_TERMINATE=true
         shift # past argument=value
         ;;
     esac
@@ -780,10 +757,10 @@ confirm_or_exit() {
                 n|N|NO|no|No)
                     echo "Aborting - you entered $input"
                     exit ;;
-                *) echo "Please enter only y or n"
+                *) echo "Please enter only y|Y|YES|yes|Yes or n|N|NO|no|No"
             esac
         done
-    echo "You entered $input. Continuing ..."
+    echo "You entered $input. Continuing..."
 }
 
 copy_playbook() {
@@ -796,20 +773,28 @@ copy_playbook() {
     sed -i "" -E "s/^(.*)hosts:(.*)/\1hosts: ami-creator/g" ${project_dir}/playbook.yml
 }
 
+# @todo genericize setting session variables
 lock_instance_id() {
     local instance_id=$1
     local lockfile="${PROJECT_DIR}/session.lock"
 
     # replace instance_id in lockfile
     sed -i "" "s/^INSTANCE_ID.*/INSTANCE_ID='$instance_id'/" ${lockfile}
+
+    # session just changed. update the global session variable
+    INSTANCE_ID="${instance_id}"
 }
 
+# @todo genericize setting session variables
 lock_ami_id() {
     local ami_id=$1
     local lockfile="${PROJECT_DIR}/session.lock"
 
     # replace ami_id in lockfile
     sed -i "" "s/^AMI_ID.*/AMI_ID='$ami_id'/" ${lockfile}
+
+    # session just changed. update the global session variable
+    AMI_ID="${ami_id}"
 }
 
 lock_ssh_config() {
@@ -851,8 +836,6 @@ create_instance() {
 
     # write instance_id to lockfile
     lock_instance_id ${instance_id}
-
-    echo ${instance_id}
 }
 
 list_instances() {
@@ -866,7 +849,8 @@ list_instances() {
         echo "[INFO] Listing instances tagged with ami-creator-project=${PROJECT_NAME}"
         filters="Name=tag:ami-creator-project,Values=${PROJECT_NAME}"
     else
-        echo "[INFO] Listing instance ID: ${INSTANCE_ID}"
+        # 'session' scope
+        echo "[INFO] Listing Instance ID: ${INSTANCE_ID}"
         filters="Name=instance-id,Values=${INSTANCE_ID}"
     fi
 
@@ -940,27 +924,28 @@ ansible() {
     return ${ansible_exit_code}
 }
 
-terminate_instance() {
-    local instance_ids=$1
+terminate_instances() {
+    local scope=$1
 
-    # @todo maybe prompt for confirmation before terminating???? instead of using the --no-terminate flag.
-    #       I seem to forget the flag most of the time I actually wanted it
+    # list instances that would be terminated
+    list_instances ${scope}
 
-    if [ "${NO_TERMINATE}" == "true" ]; then
-        echo "[WARNING] instance was not terminated due to --no-terminate";
-    else
-        echo "[INFO] Terminating Instance IDs: $instance_ids";
-        local terminated_instance=$(aws ec2 terminate-instances \
-            --profile ${AWS_PROFILE} \
-            --instance-ids ${instance_ids} \
-            --output text \
-            --query 'TerminatingInstances[*].InstanceId');
+    # get instance IDs for termination
+    local instances=$(get_instances_by_scope ${scope})
 
-        # @todo exit if this fails
+    # confirm before terminating
+    confirm_or_exit "Are you sure you want to terminate the listed instances? [y/n] "
 
-        # remove instance id from lockfile
-        lock_instance_id ''
-  fi
+    local terminated_instance=$(aws ec2 terminate-instances \
+        --profile ${AWS_PROFILE} \
+        --instance-ids ${instances} \
+        --output text \
+        --query 'TerminatingInstances[*].InstanceId');
+
+    # @todo exit if this fails
+
+    # remove instance id from lockfile
+    lock_instance_id ''
 }
 
 create_ami() {

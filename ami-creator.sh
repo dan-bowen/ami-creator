@@ -6,6 +6,7 @@ shopt -s extdebug
 #IFS=$'\n\t'
 
 # @TODO cloudformation for creating user (ami-creator), roles, policies, etc.
+# @TODO one-line installer
 # @TODO custom tab completion for commands and parameters
 
 # define version
