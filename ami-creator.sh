@@ -15,7 +15,13 @@ VERSION="ami-creator/0.1.0"
 CALLING_DIR="$(pwd)"
 
 # Directory of these scripts
-ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+if [[ -h "$0" ]]; then
+    # we are being called via symlink
+    ROOT_DIR="$(dirname "$(readlink "$0")")"
+else
+    # we are being called directly
+    ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+fi
 
 # define usage
 USAGE="
