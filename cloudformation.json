@@ -147,14 +147,19 @@
         "SubnetId": {
           "Ref": "PublicSubnet"
         },
-        "NetworkAclId": {"Fn::GetAtt" : ["VPC" , "DefaultNetworkAcl"]}
+        "NetworkAclId": {
+          "Fn::GetAtt": [
+            "VPC",
+            "DefaultNetworkAcl"
+          ]
+        }
       }
     },
     "SecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupName": "ami-creator",
-        "GroupDescription": "Allow SSH access from anywhere",
+        "GroupDescription": "Allow SSH access",
         "SecurityGroupIngress": [
           {
             "CidrIp": {
@@ -166,6 +171,10 @@
           }
         ],
         "Tags": [
+          {
+            "Key": "Name",
+            "Value": "ami-creator"
+          },
           {
             "Key": "ami-creator",
             "Value": "ami-creator"
@@ -196,7 +205,7 @@
             }
           ]
         },
-        "RoleName": "ami-creator"
+        "RoleName": "ami-creator-instance"
       }
     },
     "IamInstanceProfile": {
@@ -207,22 +216,107 @@
           {
             "Ref": "IamInstanceRole"
           }
-        ]
+        ],
+        "InstanceProfileName": "ami-creator-instance"
+      }
+    },
+    "IamUserPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Grants permissions needed for ami-creator user",
+        "Path": "/",
+        "ManagedPolicyName": "ami-creator-user",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "iam:PassRole"
+              ],
+              "Resource": {
+                "Fn::GetAtt": [
+                  "IamInstanceRole",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:RunInstances",
+                "ec2:CreateTags",
+                "ec2:DescribeInstances",
+                "ec2:CreateImage",
+                "ec2:DescribeImages"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:TerminateInstances"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": {
+                  "ec2:ResourceTag/ami-creator": "ami-creator"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "IamUser": {
+      "Type": "AWS::IAM::User",
+      "Properties": {
+        "ManagedPolicyArns": [
+          {
+            "Ref": "IamUserPolicy"
+          }
+        ],
+        "Path": "/",
+        "UserName": "ami-creator"
       }
     }
   },
-  "Outputs" : {
-    "VPCId" : {
-      "Description" : "VPC ID for ami-creator",
-      "Value" :  { "Ref" : "VPC" }
+  "Outputs": {
+    "PublicSubnet": {
+      "Description": "Public Subnet for ami-creator",
+      "Value": {
+        "Ref": "PublicSubnet"
+      }
     },
-    "PublicSubnet" : {
-      "Description" : "Public Subnet for ami-creator",
-      "Value" :  { "Ref" : "PublicSubnet" }
+    "IamInstanceRole": {
+      "Description": "IAM Instance Role for ami-creator",
+      "Value": {
+        "Ref": "IamInstanceRole"
+      }
     },
-    "IamInstanceRole" : {
-      "Description" : "IAM Instance Role for ami-creator",
-      "Value" :  { "Ref" : "IamInstanceRole" }
+    "IamInstanceProfile": {
+      "Description": "IAM Instance Profile for ami-creator",
+      "Value": {
+        "Ref": "IamInstanceProfile"
+      }
+    },
+    "SecurityGroup": {
+      "Description": "EC2 Security Group for ami-creator",
+      "Value": {
+        "Ref": "SecurityGroup"
+      }
+    },
+    "IamUser": {
+      "Description": "IAM User for ami-creator",
+      "Value": {
+        "Ref": "IamUser"
+      }
+    },
+    "IamUserPolicy": {
+      "Description": "IAM User Policy for ami-creator",
+      "Value": {
+        "Ref": "IamUserPolicy"
+      }
     }
   }
 }

@@ -295,6 +295,8 @@ EOF
 #!/usr/bin/env bash
 set -euo pipefail
 
+# @TODO handle other platforms
+
 if apt-get -v &> /dev/null; then
     sudo apt-get -y update;
     sudo apt-get -y upgrade;
@@ -305,8 +307,6 @@ fi
 if which yum &> /dev/null; then
     exit 1
 fi
-
-# @TODO handle other platforms
 EOF
 
     chmod +x ${project_dir}/pre-ansible.sh
@@ -826,8 +826,8 @@ create_instance() {
         --subnet-id ${EC2_SUBNETS} \
         --iam-instance-profile Name=${IAM_INSTANCE_PROFILE} \
         --tag-specifications \
-            "ResourceType=instance,Tags=[{Key=Name,Value=ami-creator},{Key=ami-creator-project,Value=${PROJECT_NAME}}]" \
-            "ResourceType=volume,Tags=[{Key=Name,Value=ami-creator},{Key=ami-creator-project,Value=${PROJECT_NAME}}]" \
+            "ResourceType=instance,Tags=[{Key=Name,Value=ami-creator},{Key=ami-creator,Value=ami-creator},{Key=ami-creator-project,Value=${PROJECT_NAME}}]" \
+            "ResourceType=volume,Tags=[{Key=Name,Value=ami-creator},{Key=ami-creator,Value=ami-creator},{Key=ami-creator-project,Value=${PROJECT_NAME}}]" \
         --associate-public-ip-address \
         --output text \
         --query 'Instances[*].InstanceId');
@@ -844,7 +844,7 @@ list_instances() {
 
     if [ "${scope}" == 'all' ]; then
         echo "[INFO] Listing instances tagged with ami-creator=ami-creator"
-        filters='Name=tag:Name,Values=ami-creator'
+        filters='Name=tag:ami-creator,Values=ami-creator'
     elif [ "${scope}" == 'project' ]; then
         echo "[INFO] Listing instances tagged with ami-creator-project=${PROJECT_NAME}"
         filters="Name=tag:ami-creator-project,Values=${PROJECT_NAME}"
