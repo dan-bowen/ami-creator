@@ -240,4 +240,3 @@ someproject.playbook.yml
 3. Pure Bash, eh?
 
    This may get rewritten in Python at some point. For now it works pretty well and there are no dependencies.
-
