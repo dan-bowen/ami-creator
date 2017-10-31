@@ -1,0 +1,5 @@
+---
+- name: Debug Playbook
+  hosts: debug.com
+  roles:
+    - debug

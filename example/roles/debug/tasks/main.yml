@@ -1,0 +1,5 @@
+---
+- name: Dump all variables
+  template:
+    src=dumpall.j2
+    dest=/tmp/ansible.all

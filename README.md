@@ -70,9 +70,12 @@ Pre-requisites:
 
 - [AWS CLI tools](https://aws.amazon.com/cli/)
   
-  I highly suggest a creating 
-  [separate profile](http://docs.aws.amazon.com/cli/latest/userguide/cli-multiple-profiles.html) reserved 
-  for `ami-creator` to use. The [cloudformation.json](./cloudformation.json) will create this for you.
+  I suggest a creating [separate profile](http://docs.aws.amazon.com/cli/latest/userguide/cli-multiple-profiles.html) 
+  reserved for `ami-creator` to use. The [cloudformation.json](./cloudformation.json) will create a separate user with 
+  all the permissions you need. You'll need to manually create the access key and `aws` profile for this user.
+  
+  Alternatively, you can attach the `ami-creator-user` policy created by [cloudformation.json](./cloudformation.json) 
+  to an existing user or group.
 
 ```
 # checkout the git repo

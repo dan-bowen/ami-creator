@@ -234,7 +234,7 @@ OPTIONS
     read -p 'EC2 security groups (must allow SSH access): ' ec2_security_groups
     read -p 'EC2 subnets: ' ec2_subnets
     read -p 'EC2 instance type (default: t2.small): ' ec2_instance_type
-    read -p 'IAM instance profile (default: ami-creator): ' iam_instance_profile
+    read -p 'IAM instance profile (default: ami-creator-instance): ' iam_instance_profile
     read -p 'AWS profile for issuing AWS CLI commands (default: default): ' aws_profile
     read -p 'Base AMI: ' ami_base
 
@@ -260,7 +260,7 @@ OPTIONS
     local ec2_ssh_key=$([ "${ec2_ssh_key}" == "" ] && echo "ami-creator" || echo "${ec2_ssh_key}");
     local ec2_ssh_user=$([ "${ec2_ssh_user}" == "" ] && echo "ec2-user" || echo "${ec2_ssh_user}");
     local ec2_instance_type=$([ "${ec2_instance_type}" == "" ] && echo "t2.small" || echo "${ec2_instance_type}");
-    local iam_instance_profile=$([ "${iam_instance_profile}" == "" ] && echo "ami-creator" || echo "${iam_instance_profile}");
+    local iam_instance_profile=$([ "${iam_instance_profile}" == "" ] && echo "ami-creator-instance" || echo "${iam_instance_profile}");
 
     # create project directory
     local project_dir="./${project_name}"

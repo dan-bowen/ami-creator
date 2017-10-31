@@ -1,0 +1,5 @@
+---
+- name: Debug Playbook
+  hosts: ami-creator
+  roles:
+    - debug
