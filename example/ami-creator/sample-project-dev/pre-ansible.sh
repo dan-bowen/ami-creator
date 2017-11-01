@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# @TODO handle other platforms
-
 if apt-get -v &> /dev/null; then
     sudo apt-get -y update;
     sudo apt-get -y upgrade;
@@ -11,5 +9,5 @@ if apt-get -v &> /dev/null; then
 fi
 
 if which yum &> /dev/null; then
-    exit 1
+    sudo yum -y update;
 fi

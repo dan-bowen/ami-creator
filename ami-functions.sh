@@ -295,8 +295,6 @@ EOF
 #!/usr/bin/env bash
 set -euo pipefail
 
-# @TODO handle other platforms
-
 if apt-get -v &> /dev/null; then
     sudo apt-get -y update;
     sudo apt-get -y upgrade;
@@ -305,7 +303,7 @@ if apt-get -v &> /dev/null; then
 fi
 
 if which yum &> /dev/null; then
-    exit 1
+    sudo yum -y update;
 fi
 EOF
 
@@ -993,29 +991,17 @@ ami_wait() {
 }
 
 pre_ansible() {
-    local copy_exit_code
-    local execute_exit_code
-
-    # copy pre-ansible.sh to instance
-    echo "[INFO] Copying ./pre-ansible.sh to instance at /tmp/pre-ansible.sh"
-    scp -F ${PROJECT_DIR}/ssh.cfg ${PROJECT_DIR}/pre-ansible.sh ami-creator:/tmp/
-    copy_exit_code=$?
-    if [ ${copy_exit_code} != 0 ]; then
-        echo "[ERROR] Failed to copy ./pre-ansible.sh to instance at /tmp/pre-ansible.sh"
-        exit 1
-    else
-        echo "[INFO] Copied ./pre-ansible.sh to instance at /tmp/pre-ansible.sh"
-    fi
+    local execute_exit_code=0
 
     # run pre-ansible.sh on instance
-    echo "[INFO] Executing /tmp/pre-ansible.sh on instance."
-    ssh -F ${PROJECT_DIR}/ssh.cfg ami-creator '/tmp/pre-ansible.sh';
-    execute_exit_code=$?
-    if [ ${execute_exit_code} != 0 ]; then
+    echo "[INFO] Executing ./pre-ansible.sh on instance."
+    ssh -F ${PROJECT_DIR}/ssh.cfg ami-creator 'bash -s' < ./pre-ansible.sh || execute_exit_code=$? && true;
+
+    if [[ ${execute_exit_code} = 0 ]]; then
+        echo "[INFO] pre-ansible provisioning succeeded."
+    else
         echo "[ERROR] pre-ansible.sh provisioning failed."
         exit 1
-    else
-        echo "[INFO] pre-ansible provisioning succeeded."
     fi
 }
 

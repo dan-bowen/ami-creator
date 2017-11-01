@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # http://redsymbol.net/articles/unofficial-bash-strict-mode/
-set -eEu -o pipefail
+set -euo pipefail
 shopt -s extdebug
 #IFS=$'\n\t'
 
