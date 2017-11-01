@@ -67,7 +67,6 @@ You basically have three options for creating these resources:
 Pre-requisites:
 
 - [Ansible](http://docs.ansible.com/ansible/latest/intro_installation.html)
-
 - [AWS CLI tools](https://aws.amazon.com/cli/)
   
   I suggest a creating [separate profile](http://docs.aws.amazon.com/cli/latest/userguide/cli-multiple-profiles.html) 
