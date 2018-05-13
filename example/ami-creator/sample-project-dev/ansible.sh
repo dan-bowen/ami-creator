@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ANSIBLE_ROLES_PATH=../../roles \
-ansible-playbook ./playbook.yml \
-    --inventory=./inventory.ini \
-    --ssh-common-args='-F ./ssh.cfg';
+cd ../../
+ansible-playbook ami-creator.sample-project-dev.playbook.yml \
+    --inventory=ami-creator.sample-project-dev.inventory.ini \
+    --ssh-common-args='-F ./ami-creator/sample-project-dev/ssh.cfg';

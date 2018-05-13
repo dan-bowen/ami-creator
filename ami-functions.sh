@@ -101,8 +101,12 @@ OPTIONS
 
     set_global_variables ${@-}
 
+    # `create` is expected to be called in the ./ami-creator/{PROJECT} folder within the ansible directory. `dirname` should give us
+    # the full path to the ansible directory structure.
+    local ansible_dir=$(dirname $(dirname ${CALLING_DIR}))
+
     # copy original playbook to pick up changes
-    copy_playbook "../../${ANSIBLE_PLAYBOOK}" ${PROJECT_DIR}
+    copy_playbook "${ansible_dir}" "${ANSIBLE_PLAYBOOK}" "${PROJECT_NAME}"
 
     # Create the instance
     echo "[INFO] Creating temporary EC2 instance."
@@ -284,11 +288,12 @@ EOF
     echo "[INFO] Created project configuration file: ${project_dir}/project.cfg"
 
     # create inventory file
-    cat <<EOF >> ${project_dir}/inventory.ini
+    local inventory_file=${ansible_dir}/ami-creator.${project_name}.inventory.ini
+    cat <<EOF >> ${inventory_file}
 ami-creator
 EOF
 
-    echo "[INFO] Created inventory file:             ${project_dir}/inventory.ini"
+    echo "[INFO] Created inventory file:             ${inventory_file}"
 
     # create pre-ansible script
     cat <<'EOF' >> ${project_dir}/pre-ansible.sh
@@ -312,17 +317,17 @@ EOF
     echo "[INFO] Created pre-ansible script:         ${project_dir}/pre-ansible.sh"
 
     # Copy playbook. we should be in the 'ami-creator' folder when this happens
-    copy_playbook "../${ansible_playbook}" ${project_dir}
+    copy_playbook "${ansible_dir}" "${ansible_playbook}" "${project_name}"
 
     # create provisioning script
     cat <<EOF >> ${project_dir}/ansible.sh
 #!/usr/bin/env bash
 set -euo pipefail
 
-ANSIBLE_ROLES_PATH=../../roles \\
-ansible-playbook ./playbook.yml \\
-    --inventory=./inventory.ini \\
-    --ssh-common-args='-F ./ssh.cfg';
+cd ../../
+ansible-playbook ami-creator.${project_name}.playbook.yml \\
+    --inventory=ami-creator.${project_name}.inventory.ini \\
+    --ssh-common-args='-F ./ami-creator/${project_name}/ssh.cfg';
 EOF
 
     chmod +x ${project_dir}/ansible.sh
@@ -762,13 +767,15 @@ confirm_or_exit() {
 }
 
 copy_playbook() {
-    local ansible_playbook=$1
-    local project_dir=$2
+    local ansible_dir=$1
+    local playbook_file=$2
+    local project_name=$3
+    local new_playbook=${ansible_dir}/ami-creator.${project_name}.playbook.yml
 
-    echo "[INFO] Copied Ansible playbook: ${ansible_playbook} -> ${project_dir}/playbook.yml"
+    cp ${ansible_dir}/${playbook_file} ${new_playbook}
+    sed -i "" -E "s/^(.*)hosts:(.*)/\1hosts: ami-creator/g" ${new_playbook}
 
-    cp ${ansible_playbook} ${project_dir}/playbook.yml
-    sed -i "" -E "s/^(.*)hosts:(.*)/\1hosts: ami-creator/g" ${project_dir}/playbook.yml
+    echo "[INFO] Copied Ansible playbook: ${playbook_file} -> ${new_playbook}"
 }
 
 # @todo genericize setting session variables
@@ -813,6 +820,7 @@ lock_ssh_config() {
     sed -i "" "s/^  User.*/  User $EC2_SSH_USER/" ${ssh_config_file}
 }
 
+# @TODO option to choose previous AMI to build from? Different from BASE_AMI defined in project config.
 create_instance() {
     local instance_id=$(aws ec2 run-instances \
         --profile ${AWS_PROFILE} \

@@ -163,8 +163,6 @@ projects live in folders below that.
 ami-creator/
     project-name/
         ansible.sh
-        inventory.ini
-        playbook.yml
         pre-ansible.sh
         project.cfg
         session.lock
@@ -172,6 +170,8 @@ ami-creator/
 group_vars/
 host_vars/
 roles/
+ami-creator.{project_name}.inventory.ini
+ami-creator.{project_name}.playbook.yml
 someproject.playbook.yml
 ```
 
@@ -183,24 +183,6 @@ someproject.playbook.yml
 
   - Feel free to modify, but be careful to retain the existing parameters.
 
-- `inventory.ini`
-  
-  This is an [Ansible inventory file](http://docs.ansible.com/ansible/latest/intro_inventory.html) that 
-  represents the temporary EC2 instance.
-
-  - Feel free to modify, but be careful to retain the `ami-creator` hostname.
-
-- `playbook.yml`
-  
-  This playbook is copied from your existing Ansible directory. The main difference is the `hosts` variable 
-  is set to `ami-creator`, e.g. `hosts: ami-creator`, so that AMI Creator can run the playbook against the 
-  temporary EC2 instance.
-  
-  AMI Creator does not touch your existing playbooks. You can modify your current playbooks at-will and AMI 
-  Creator will copy the changes to this file.
-  
-  - Do not modify
-  
 - `pre-ansible.sh`
   
   This script is copied to and executed on the temporary EC2 instance prior to running Ansible.
@@ -224,6 +206,24 @@ someproject.playbook.yml
   to help with SSH-ing to the temporary EC2 instance.
   
   - Do not modify.
+
+- `ami-creator.{project_name}.inventory.ini`
+  
+  This is an [Ansible inventory file](http://docs.ansible.com/ansible/latest/intro_inventory.html) that 
+  represents the temporary EC2 instance.
+
+  - Feel free to modify, but be careful to retain the `ami-creator` hostname.
+
+- `ami-creator.{project_name}.playbook.yml`
+  
+  This playbook is copied from your existing Ansible directory. The main difference is the `hosts` variable 
+  is set to `ami-creator`, e.g. `hosts: ami-creator`, so that AMI Creator can run the playbook against the 
+  temporary EC2 instance.
+  
+  AMI Creator does not touch your existing playbooks. You can modify your current playbooks at-will and AMI 
+  Creator will copy the changes to this file.
+  
+  - Do not modify
 
 # F.A.Q.
 
