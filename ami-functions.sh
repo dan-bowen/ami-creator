@@ -241,9 +241,11 @@ OPTIONS
     read -p 'IAM instance profile (default: ami-creator-instance): ' iam_instance_profile
     read -p 'AWS profile for issuing AWS CLI commands (default: default): ' aws_profile
     read -p 'Base AMI: ' ami_base
+    read -p 'Ansible group name: ' ansible_group
 
     # cd into ansible dir to start tab completion from the correct directory
     cd ${ansible_dir}
+
     # ensure Ansible playbook actually exists
     while true; do
         # -e gives us tab completion
@@ -256,6 +258,7 @@ OPTIONS
             echo "Please try again..."
         fi
     done
+
     # cd back to CALLING_DIR
     cd ${CALLING_DIR}
 
@@ -274,6 +277,7 @@ OPTIONS
     cat <<EOF >> ${project_dir}/project.cfg
 PROJECT_NAME='${project_name}'
 ANSIBLE_PLAYBOOK='${ansible_playbook}'
+ANSIBLE_GROUP='${ansible_group}'
 AWS_PROFILE='${aws_profile}'
 AMI_BASE='${ami_base}'
 EC2_SSH_KEY='${ec2_ssh_key}'
@@ -289,8 +293,12 @@ EOF
 
     # create inventory file
     local inventory_file=${ansible_dir}/ami-creator.${project_name}.inventory.ini
+    if [[ ! -z "${ansible_group}" ]]; then
+        ansible_group="[${ansible_group}]"$'\n'
+    fi
+
     cat <<EOF >> ${inventory_file}
-ami-creator
+${ansible_group}ami-creator
 EOF
 
     echo "[INFO] Created inventory file:             ${inventory_file}"
