@@ -242,6 +242,7 @@ OPTIONS
     read -p 'AWS profile for issuing AWS CLI commands (default: default): ' aws_profile
     read -p 'Base AMI: ' ami_base
     read -p 'Ansible group name: ' ansible_group
+    local ansible_vault_prompt=$(prompt_yes_no 'Prompt for Ansible vault password? (y/n): ')
 
     # cd into ansible dir to start tab completion from the correct directory
     cd ${ansible_dir}
@@ -278,6 +279,7 @@ OPTIONS
 PROJECT_NAME='${project_name}'
 ANSIBLE_PLAYBOOK='${ansible_playbook}'
 ANSIBLE_GROUP='${ansible_group}'
+ANSIBLE_VAULT_PROMPT='${ansible_vault_prompt}'
 AWS_PROFILE='${aws_profile}'
 AMI_BASE='${ami_base}'
 EC2_SSH_KEY='${ec2_ssh_key}'
@@ -327,6 +329,10 @@ EOF
     # Copy playbook. we should be in the 'ami-creator' folder when this happens
     copy_playbook "${ansible_dir}" "${ansible_playbook}" "${project_name}"
 
+    if [[ ${ansible_vault_prompt} == 'y' ]]; then
+        ansible_vault_prompt=" \\"$'\n'"    --ask-vault-pass"
+    fi
+
     # create provisioning script
     cat <<EOF >> ${project_dir}/ansible.sh
 #!/usr/bin/env bash
@@ -335,7 +341,7 @@ set -euo pipefail
 cd ../../
 ansible-playbook ami-creator.${project_name}.playbook.yml \\
     --inventory=ami-creator.${project_name}.inventory.ini \\
-    --ssh-common-args='-F ./ami-creator/${project_name}/ssh.cfg';
+    --ssh-common-args='-F ./ami-creator/${project_name}/ssh.cfg'${ansible_vault_prompt};
 EOF
 
     chmod +x ${project_dir}/ansible.sh
@@ -753,6 +759,7 @@ in_array() {
             return 0
         fi
     done
+
     return 1
 }
 
@@ -772,6 +779,22 @@ confirm_or_exit() {
             esac
         done
     echo "You entered $input. Continuing..."
+}
+
+prompt_yes_no() {
+    local prompt=$1
+    local input
+    while true
+        do
+            read -p "${prompt}" input
+            case ${input} in
+                y|n)
+                    break ;;
+                *) echo "Please enter only y or n"
+            esac
+        done
+
+    echo "${input}"
 }
 
 copy_playbook() {
