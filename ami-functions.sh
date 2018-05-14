@@ -101,8 +101,12 @@ OPTIONS
 
     set_global_variables ${@-}
 
+    # `create` is expected to be called in the ./ami-creator/{PROJECT} folder within the ansible directory. `dirname` should give us
+    # the full path to the ansible directory structure.
+    local ansible_dir=$(dirname $(dirname ${CALLING_DIR}))
+
     # copy original playbook to pick up changes
-    copy_playbook "../../${ANSIBLE_PLAYBOOK}" ${PROJECT_DIR}
+    copy_playbook "${ansible_dir}" "${ANSIBLE_PLAYBOOK}" "${PROJECT_NAME}"
 
     # Create the instance
     echo "[INFO] Creating temporary EC2 instance."
@@ -237,9 +241,12 @@ OPTIONS
     read -p 'IAM instance profile (default: ami-creator-instance): ' iam_instance_profile
     read -p 'AWS profile for issuing AWS CLI commands (default: default): ' aws_profile
     read -p 'Base AMI: ' ami_base
+    read -p 'Ansible group name: ' ansible_group
+    local ansible_vault_prompt=$(prompt_yes_no 'Prompt for Ansible vault password? (y/n): ')
 
     # cd into ansible dir to start tab completion from the correct directory
     cd ${ansible_dir}
+
     # ensure Ansible playbook actually exists
     while true; do
         # -e gives us tab completion
@@ -252,6 +259,7 @@ OPTIONS
             echo "Please try again..."
         fi
     done
+
     # cd back to CALLING_DIR
     cd ${CALLING_DIR}
 
@@ -270,6 +278,8 @@ OPTIONS
     cat <<EOF >> ${project_dir}/project.cfg
 PROJECT_NAME='${project_name}'
 ANSIBLE_PLAYBOOK='${ansible_playbook}'
+ANSIBLE_GROUP='${ansible_group}'
+ANSIBLE_VAULT_PROMPT='${ansible_vault_prompt}'
 AWS_PROFILE='${aws_profile}'
 AMI_BASE='${ami_base}'
 EC2_SSH_KEY='${ec2_ssh_key}'
@@ -284,11 +294,16 @@ EOF
     echo "[INFO] Created project configuration file: ${project_dir}/project.cfg"
 
     # create inventory file
-    cat <<EOF >> ${project_dir}/inventory.ini
-ami-creator
+    local inventory_file=${ansible_dir}/ami-creator.${project_name}.inventory.ini
+    if [[ ! -z "${ansible_group}" ]]; then
+        ansible_group="[${ansible_group}]"$'\n'
+    fi
+
+    cat <<EOF >> ${inventory_file}
+${ansible_group}ami-creator
 EOF
 
-    echo "[INFO] Created inventory file:             ${project_dir}/inventory.ini"
+    echo "[INFO] Created inventory file:             ${inventory_file}"
 
     # create pre-ansible script
     cat <<'EOF' >> ${project_dir}/pre-ansible.sh
@@ -312,17 +327,21 @@ EOF
     echo "[INFO] Created pre-ansible script:         ${project_dir}/pre-ansible.sh"
 
     # Copy playbook. we should be in the 'ami-creator' folder when this happens
-    copy_playbook "../${ansible_playbook}" ${project_dir}
+    copy_playbook "${ansible_dir}" "${ansible_playbook}" "${project_name}"
+
+    if [[ ${ansible_vault_prompt} == 'y' ]]; then
+        ansible_vault_prompt=" \\"$'\n'"    --ask-vault-pass"
+    fi
 
     # create provisioning script
     cat <<EOF >> ${project_dir}/ansible.sh
 #!/usr/bin/env bash
 set -euo pipefail
 
-ANSIBLE_ROLES_PATH=../../roles \\
-ansible-playbook ./playbook.yml \\
-    --inventory=./inventory.ini \\
-    --ssh-common-args='-F ./ssh.cfg';
+cd ../../
+ansible-playbook ami-creator.${project_name}.playbook.yml \\
+    --inventory=ami-creator.${project_name}.inventory.ini \\
+    --ssh-common-args='-F ./ami-creator/${project_name}/ssh.cfg'${ansible_vault_prompt};
 EOF
 
     chmod +x ${project_dir}/ansible.sh
@@ -740,6 +759,7 @@ in_array() {
             return 0
         fi
     done
+
     return 1
 }
 
@@ -761,14 +781,32 @@ confirm_or_exit() {
     echo "You entered $input. Continuing..."
 }
 
+prompt_yes_no() {
+    local prompt=$1
+    local input
+    while true
+        do
+            read -p "${prompt}" input
+            case ${input} in
+                y|n)
+                    break ;;
+                *) echo "Please enter only y or n"
+            esac
+        done
+
+    echo "${input}"
+}
+
 copy_playbook() {
-    local ansible_playbook=$1
-    local project_dir=$2
+    local ansible_dir=$1
+    local playbook_file=$2
+    local project_name=$3
+    local new_playbook=${ansible_dir}/ami-creator.${project_name}.playbook.yml
 
-    echo "[INFO] Copied Ansible playbook: ${ansible_playbook} -> ${project_dir}/playbook.yml"
+    cp ${ansible_dir}/${playbook_file} ${new_playbook}
+    sed -i "" -E "s/^(.*)hosts:(.*)/\1hosts: ami-creator/g" ${new_playbook}
 
-    cp ${ansible_playbook} ${project_dir}/playbook.yml
-    sed -i "" -E "s/^(.*)hosts:(.*)/\1hosts: ami-creator/g" ${project_dir}/playbook.yml
+    echo "[INFO] Copied Ansible playbook: ${playbook_file} -> ${new_playbook}"
 }
 
 # @todo genericize setting session variables
@@ -813,6 +851,7 @@ lock_ssh_config() {
     sed -i "" "s/^  User.*/  User $EC2_SSH_USER/" ${ssh_config_file}
 }
 
+# @TODO option to choose previous AMI to build from? Different from BASE_AMI defined in project config.
 create_instance() {
     local instance_id=$(aws ec2 run-instances \
         --profile ${AWS_PROFILE} \
