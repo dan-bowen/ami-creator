@@ -57,7 +57,7 @@ There are several options for creating these resources:
 
 ## Installation
 
-Pre-requisites:
+### Pre-requisites
 
 - [Ansible](http://docs.ansible.com/ansible/latest/intro_installation.html)
 - [AWS CLI tools](https://aws.amazon.com/cli/)
@@ -68,6 +68,25 @@ Pre-requisites:
   
   Alternatively, you can attach the `amify-user` policy created by [cloudformation.yml](./cloudformation.yml) 
   to an existing user or group.
+
+### Venv
+
+```
+# Ensure you have virtualenv installed
+$ pip install virtualenv
+
+# initialize virtual env
+$ virtualenv venv
+
+# start virtualenv
+$ source venv/bin/activate
+
+# Install local module as symlink
+$ pip install -e .
+
+# check installation
+$ which amify
+```
 
 ## Creating an AMI
 
@@ -87,7 +106,7 @@ $ amify finalize
 $ amify terminate
 ```
 
-# Managing resources
+## Managing resources
 
 Instances and AMIs are tagged so they are easily discoverable by `amify`. These commands will show you what 
 resources are associated with `amify`,
