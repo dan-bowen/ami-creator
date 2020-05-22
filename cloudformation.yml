@@ -127,7 +127,7 @@ Resources:
     Properties:
       Description: Grants permissions needed for amify user
       Path: /
-      ManagedPolicyName: amify
+      ManagedPolicyName: amify-user
       PolicyDocument:
         Version: 2012-10-17
         Statement:

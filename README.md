@@ -1,25 +1,23 @@
-# AMI Creator
+# Amify
 
-Automates creating custom AMIs using Ansible for provisioning.
+Amify is a simple command-line wrapper around several tedious steps when it comes to creating 
+custom AMIs with Ansible.
 
 1. Create a temporary EC2 instance
-1. Upload and run a pre-provisioning script
+1. Upload and run a `pre-ansible.sh` script
 1. Run Ansible against the instance
-1. Create AMI
-1. Terminate instance
-
-Each of these steps can be run individually to allow for debugging and fine-tuning your instance 
-before creating the final AMI.
+1. Create the AMI
+1. Terminate the instance
 
 ```
-$ ami-creator help
+$ amify --help
 
 NAME
-        ami-creator
+        amify
 
 DESCRIPTION
 
-        ami-creator is a command line tool to build custom AMIs using Ansible for provisioning.
+        amify is a command line tool to build custom AMIs using Ansible.
 
 OPTIONS
 
@@ -31,11 +29,11 @@ AVAILABLE COMMANDS
     create              Create a custom AMI start to finish
     pre-ansible         Run a script on the instance before running Ansible
     ansible             Run Ansible on the instance
-    ssh                 SSH to the currently running instance
-    finalize            Create AMI from currently running instance
-    terminate           Terminate the currently running instance
-    list-amis           List AMIs created on a per-session, per-project or global basis
-    list-instances      List any instances that are running on a per-session, per-roject or global basis
+    ssh                 SSH to the instance
+    finalize            Create AMI from the instance
+    terminate           Terminate the instance
+    list-amis           List AMIs
+    list-instances      List running instances
 ```
 
 # Getting started
@@ -51,16 +49,11 @@ Performing actions in your AWS account requires several resources to exist prior
 - EC2 Subnet, e.g `subnet-7a742b20`
 - EC2 IAM Instance Profile
 
-You will be prompted for these values when creating a new project, so it is a good idea to set them up first.
-
-You basically have three options for creating these resources:
+There are several options for creating these resources:
 
 1. Use existing resources.
-1. Create new ones.
-1. Use [cloudformation.json](./cloudformation.json) to create a separate `ami-creator` stack for you.
-
-   [cloudformation.json](./cloudformation.json) has the added benefit of being completely separate from your existing resources. Don't 
-   like `ami-creator`? Just delete the stack, and there will be no traces of it in your AWS account.
+1. Manuall create new ones.
+1. Use [cloudformation.yml](./cloudformation.yml) to create a separate `amify` stack for you.
 
 ## Installation
 
@@ -70,180 +63,118 @@ Pre-requisites:
 - [AWS CLI tools](https://aws.amazon.com/cli/)
   
   I suggest a creating [separate profile](http://docs.aws.amazon.com/cli/latest/userguide/cli-multiple-profiles.html) 
-  reserved for `ami-creator` to use. The [cloudformation.json](./cloudformation.json) will create a separate user with 
+  reserved for `amify` to use. The [cloudformation.yml](./cloudformation.yml) will create a separate user with 
   all the permissions you need. You'll need to manually create the access key and `aws` profile for this user.
   
-  Alternatively, you can attach the `ami-creator-user` policy created by [cloudformation.json](./cloudformation.json) 
+  Alternatively, you can attach the `amify-user` policy created by [cloudformation.yml](./cloudformation.yml) 
   to an existing user or group.
-
-```
-# checkout the git repo
-$ git clone git@github.com:crucialwebstudio/ami-creator.git
-
-# symlink ami-creator.sh to somewhere on your $PATH
-$ ln -s /path/to/ami-creator.sh /usr/local/bin/ami-creator
-```
-
-Now you can call `ami-creator` from anywhere.
-
-## Create `ami-creator` directory in your Ansible folder
-
-```
-$ cd /path/to/ansible
-$ mkdir ami-creator
-```
-
-## Creating a project
-
-Call `ami-creator init` from within the `ami-creator` directory.
-
-```
-$ cd /path/to/ansible/ami-creator
-$ ami-creator init
-```
-
-This will prompt you for several project variables and save several files to a new project folder.
 
 ## Creating an AMI
 
 ```
-$ cd /path/to/ansible/ami-creator/name-of-project
-$ ami-creator create
+$ amify create
 ```
 
-This should start a new 'session' and a custom AMI from start to finish. If any of the steps fail, 
-the instance will still be running so you can debug and tweak your instance. `ami-creator` includes several commands 
-to help with debugging a 'session'.
+This should create a custom AMI from start to finish. If any of the intermediate steps fail, the instance will still be 
+running so you can debug and tweak your instance. `amify` includes several commands 
+to help with debugging a running instance.
 
 ```
-$ ami-creator ssh
-$ ami-creator pre-ansible
-$ ami-creator ansible
-$ ami-creator finalize
-$ ami-creator terminate
+$ amify ssh
+$ amify pre-ansible
+$ amify ansible
+$ amify finalize
+$ amify terminate
 ```
 
-# Viewing resources
+# Managing resources
 
-Instances and AMIs are tagged so they are easily discoverable by `ami-creator`. These commands will show you what 
-resources are associated with `ami-creator`,
+Instances and AMIs are tagged so they are easily discoverable by `amify`. These commands will show you what 
+resources are associated with `amify`,
 
-## Listing Instances
-
-```
-$ ami-creator list-instances
-```
-
-AMI creator prompts you to terminate the temporary instance after a new AMI is successfully created. If you 
-answered no or some other step of the process fails such that the instance is not terminated, this command will list 
-any instances that were created by `ami-creator`.
-
-You can manually terminate any running instances with 
+List running instances.
 
 ```
-$ ami-creator terminate
+$ amify list-instances
 ```
 
-## Listing AMIs
+Terminate running instances.
 
 ```
-$ ami-creator list-amis
+$ amify terminate
 ```
 
-AMIs are tagged so they are easily discoverable on a per-session, per-project, or global basis. This command will 
-list them for you.
+List all AMIs.
+
+```
+$ amify list-amis
+```
 
 # Project Directory Structure
 
-The `ami-creator` folder lives inside your Ansible directory structure. AMI Creator 
-projects live in folders below that.
+The `.amify` folder lives inside your Ansible directory structure.
 
 
 ```
-ami-creator/
-    project-name/
-        ansible.sh
-        pre-ansible.sh
-        project.cfg
-        session.lock
-        ssh.cfg
+.amify/
+    project_name/      # Project folder, named in amify.yml
+        pre-ansible.sh # Runs on the server prior to running Ansible
+        ssh.cfg        # Temporary SSH config file
+        session.yml    # Temporary session file
+    amify.yml          # Amify configuration file
 group_vars/
 host_vars/
 roles/
-ami-creator.{project_name}.inventory.ini
-ami-creator.{project_name}.playbook.yml
-someproject.playbook.yml
+someproject.inventory.amify.{ project_name }.ini # Temporary inventory
+someproject.playbook.amify.{ project_name }.yml  # Temporary playbook
+someproject.playbook.yml                         # Original playbook
 ```
 
 ## Description of files
 
-- `ansible.sh`
+- `.amify/project/pre-ansible.sh`
   
-  This is a wrapper around `ansible-playbook`.
+  This script is copied to the intance and executed prior to running Ansible.
+  
+  - Modify as needed, add to source control.
+  
+- `.amify/project/session.yml`
 
-  - Feel free to modify, but be careful to retain the existing parameters.
+  This holds temporary variables saved during a session such as the Instance ID and AMI ID.
+  
+  - Temporary, deleted on exit.
+  
+- `.amify/project/ssh.cfg`
 
-- `pre-ansible.sh`
-  
-  This script is copied to and executed on the temporary EC2 instance prior to running Ansible.
-  
-  - Feel free to modify.
-  
-- `project.cfg`
-  
-  The contains project configuration variables set during `ami-creator init`
-  
-  - Feel free to modify values. Do not add or modify variable names.
-  
-- `session.lock`
-
-  This holds variables saved during a session such as the Instance ID and the AMI ID.
-  
-  - Do not modify.
-  
-- `ssh.cfg`
   This is an [SSH config file](http://nerderati.com/2011/03/17/simplify-your-life-with-an-ssh-config-file/) 
   to help with SSH-ing to the temporary EC2 instance.
   
-  - Do not modify.
+  - Temporary, deleted on exit.
 
-- `ami-creator.{project_name}.inventory.ini`
+- `.amify/amify.yml`
+  
+  Amify configuration file.
+  
+  - Modfiy as needed, add to source control.
+
+- `someproject.playbook.amify.{ project_name }.ini`
   
   This is an [Ansible inventory file](http://docs.ansible.com/ansible/latest/intro_inventory.html) that 
   represents the temporary EC2 instance.
 
-  - Feel free to modify, but be careful to retain the `ami-creator` hostname.
+  - Temporary, deleted on exit.
 
-- `ami-creator.{project_name}.playbook.yml`
+- `someproject.playbook.amify.{ project_name }.yml`
   
-  This playbook is copied from your existing Ansible directory. The main difference is the `hosts` variable 
-  is set to `ami-creator`, e.g. `hosts: ami-creator`, so that AMI Creator can run the playbook against the 
+  This is an Ansible playbook. It is mostly a direct copy of your existing Ansible playbook. The main difference 
+  is the `hosts` variable is set to `amify`, e.g. `hosts: amify`, so that Amify can run the playbook against the 
   temporary EC2 instance.
   
-  AMI Creator does not touch your existing playbooks. You can modify your current playbooks at-will and AMI 
-  Creator will copy the changes to this file.
+  Amify does not modify your existing playbooks. You can modify your current playbooks at-will and Amify will pick
+  up the changes.
   
-  - Do not modify
-
-# F.A.Q.
-
-1. Why did you create this tool?
-
-   Creating custom AMIs is tedious. This started as an internal tool to help me automate the process and it currently
-   "works for me". I'd love to have you try it out and let me know if you find it useful.
-
-2. Why does the `ami-creator` folder have to exist within my Ansible folder?
-
-   Technically, it doesn't, but this convention makes it easy for `ami-creator` to locate your playbooks, roles, 
-   etc. Additionally, your playbooks are (hopefully) already under source control. I believe if you are using 
-   a tool such as  `ami-creator` to create custom AMIs, the files it uses and creates are important enough to have 
-   under source control as well. This enables code review, sharing with a team, etc.
-
-3. Pure Bash, eh?
-
-   This may get rewritten in Python at some point. For now it works pretty well and there are no dependencies.
+  - Temporary, deleted on exit.
 
 # @TODO
 
-- Allow editing project config after creation
-- Option to build AMI incrementally based off the last AMI. --incremental
+- `--incremental` option to build AMI incrementally based off the last AMI
