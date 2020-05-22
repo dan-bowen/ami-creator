@@ -1,5 +1,0 @@
----
-- name: Debug Playbook
-  hosts: amify
-  roles:
-    - debug

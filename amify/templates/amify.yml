@@ -1,0 +1,13 @@
+version: 0.0.1
+project:
+  arbitrary_profile_name:
+    base_ami: ami-xxxxxxxx
+    ansible_playbook: debug.playbook.yml
+    aws_profile: amify_test                 # @todo this should be overridable by individual developers
+    ec2_ssh_key: amify-key                  # @todo this should be overridable by individual developers
+    ec2_ssh_key_file: ~/.ssh/amify.pem      # @todo this should be overridable by individual developers
+    ec2_ssh_user: ec2-user
+    ec2_security_groups: sg-xxxxxxxx
+    ec2_subnets: subnet-xxxxxxxx
+    ec2_instance_type: t2.nano
+    iam_instance_profile: amify-instance-profile
