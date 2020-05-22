@@ -1,0 +1,6 @@
+---
+# This is a copy of the original playbook with the `hosts` changed to "amify"
+- name: Debug Playbook
+  hosts: amify
+  roles:
+    - debug
