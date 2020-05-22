@@ -1,5 +1,5 @@
 version: 0.0.1
-profile:
+project:
   arbitrary_profile_name:
     ansible_playbook: debug.playbook.yml
     aws_profile: amify-test
