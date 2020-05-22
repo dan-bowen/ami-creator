@@ -1,0 +1,13 @@
+version: 0.0.1
+profile:
+  arbitrary_profile_name:
+    ansible_playbook: debug.playbook.yml    # @todo this should be a temporary file
+    aws_profile: amify-test
+    ami_base: ami-xxxxxxxx
+    ec2_ssh_key: amify-key
+    ec2_ssh_key_file: ~/.ssh/amify.pem      # @todo this should be overridable by individual developers
+    ec2_ssh_user: ec2-user
+    ec2_security_groups: sg-xxxxxxxx
+    ec2_subnets: subnet-xxxxxxxx
+    ec2_instance_type: t2.nano
+    iam_instance_profile: amify-instance-profile
